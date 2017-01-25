@@ -1,0 +1,8 @@
+[
+  {
+    "id": "ModelEditorDD",
+    "title": "ModelEditorDD",
+    "panel": "panels/ModelEditorDD/ModelEditorDDPanel",
+    "DEBUG_ONLY": false
+  }
+]
