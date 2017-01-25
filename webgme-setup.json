@@ -6,7 +6,7 @@
         "title": "ModelEditorDD",
         "panel": "src/visualizers/panels/ModelEditor",
         "secondary": false,
-        "widget": "src/visualizers/widgets/ModelEditorDD"
+        "widget": "src/visualizers/widgets/ModelEditor"
       }
     }
   },

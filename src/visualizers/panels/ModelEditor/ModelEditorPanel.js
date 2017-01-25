@@ -6,7 +6,7 @@
 
 define(['js/PanelBase/PanelBaseWithHeader',
     'js/PanelManager/IActivePanel',
-    'js/Widgets/ModelEditor/ModelEditorWidget',
+    'widgets/ModelEditor/ModelEditorWidget',
     './ModelEditorControl'
 ], function (PanelBaseWithHeader,
              IActivePanel,

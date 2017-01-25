@@ -2,7 +2,7 @@
   {
     "id": "ModelEditorDD",
     "title": "ModelEditorDD",
-    "panel": "panels/ModelEditorDD/ModelEditorDDPanel",
+    "panel": "panels/ModelEditor/ModelEditorPanel",
     "DEBUG_ONLY": false
   }
 ]
