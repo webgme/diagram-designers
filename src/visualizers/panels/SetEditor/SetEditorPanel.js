@@ -7,7 +7,7 @@
 
 define(['js/PanelBase/PanelBaseWithHeader',
     'js/PanelManager/IActivePanel',
-    'js/Widgets/SetEditor/SetEditorWidget',
+    'widgets/SetEditor/SetEditorWidget',
     './SetEditorController'
 ], function (PanelBaseWithHeader,
              IActivePanel,

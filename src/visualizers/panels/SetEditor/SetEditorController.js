@@ -10,7 +10,7 @@ define(['js/Utils/GMEConcepts',
     'js/NodePropertyNames',
     'js/RegistryKeys',
     './../Crosscut/CrosscutConstants',
-    'js/Panels/ControllerBase/DiagramDesignerWidgetMultiTabMemberListControllerBase'
+    'panels/ControllerBase/DiagramDesignerWidgetMultiTabMemberListControllerBase'
 ], function (GMEConcepts,
              DragHelper,
              nodePropertyNames,

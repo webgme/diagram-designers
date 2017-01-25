@@ -10,7 +10,7 @@ define(['js/logger',
     './CrosscutConstants',
     'js/DragDrop/DragHelper',
     'js/Utils/GMEConcepts',
-    'js/Panels/ControllerBase/DiagramDesignerWidgetMultiTabMemberListControllerBase',
+    'panels/ControllerBase/DiagramDesignerWidgetMultiTabMemberListControllerBase',
     'js/Panels/MetaEditor/MetaRelations',
     'js/NodePropertyNames',
     'js/Utils/ComponentSettings'

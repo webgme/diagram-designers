@@ -8,7 +8,7 @@
 
 define([
     'js/DragDrop/DragHelper',
-    'js/Widgets/DiagramDesigner/DiagramDesignerWidget',
+    'widgets/DiagramDesigner/DiagramDesignerWidget',
     'js/Controls/iCheckBox',
     'jquery',
     'underscore'

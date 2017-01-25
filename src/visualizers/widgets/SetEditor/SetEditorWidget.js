@@ -6,7 +6,7 @@
  */
 
 define(['js/DragDrop/DragHelper',
-    'js/Widgets/DiagramDesigner/DiagramDesignerWidget',
+    'widgets/DiagramDesigner/DiagramDesignerWidget',
     'css!./styles/SetEditorWidget.css'
 ], function (DragHelper,
              DiagramDesignerWidget) {

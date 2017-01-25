@@ -6,7 +6,7 @@
 
 define(['js/PanelBase/PanelBaseWithHeader',
     'js/PanelManager/IActivePanel',
-    'js/Widgets/Crosscut/CrosscutWidget',
+    'widgets/Crosscut/CrosscutWidget',
     './CrosscutController'
 ], function (PanelBaseWithHeader,
              IActivePanel,
