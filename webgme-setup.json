@@ -7,6 +7,20 @@
         "panel": "src/visualizers/panels/ModelEditor",
         "secondary": false,
         "widget": "src/visualizers/widgets/ModelEditor"
+      },
+      "SetEditorDD": {
+        "src": "panels/SetEditor/SetEditorPanel",
+        "title": "SetEditorDD",
+        "panel": "src/visualizers/panels/SetEditor",
+        "secondary": false,
+        "widget": "src/visualizers/widgets/SetEditor"
+      },
+      "CrosscutDD": {
+        "src": "panels/Crosscut/CrosscutPanel",
+        "title": "CrosscutDD",
+        "panel": "src/visualizers/panels/Crosscut",
+        "secondary": false,
+        "widget": "src/visualizers/widgets/Crosscut"
       }
     }
   },

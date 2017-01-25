@@ -4,5 +4,17 @@
     "title": "ModelEditorDD",
     "panel": "panels/ModelEditor/ModelEditorPanel",
     "DEBUG_ONLY": false
+  },
+  {
+    "id": "SetEditorDD",
+    "title": "SetEditorDD",
+    "panel": "panels/SetEditor/SetEditorPanel",
+    "DEBUG_ONLY": false
+  },
+  {
+    "id": "CrosscutDD",
+    "title": "CrosscutDD",
+    "panel": "panels/Crosscut/CrosscutPanel",
+    "DEBUG_ONLY": false
   }
 ]
