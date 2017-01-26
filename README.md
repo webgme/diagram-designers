@@ -9,7 +9,7 @@ Note that not all dependencies of the visualizers are checked in here. For insta
 `'js/DragDrop/DragHelper'` (that is it's coming from the webgme-repo). In order to switch out components like this, 
 you just change the path in your fork.
 
-#### Using the visualizers
+### Importing the visualizers
 To import the visualizers from the particular repository (for a fork simple replace the webgme/diagram-designers with your
 git repository) using [webgme-cli](https://github.com/webgme/webgme-cli).
 
@@ -36,7 +36,7 @@ By default the component-settings are the same as for the ones in the generic UI
 changing the componentId (typically returned from `getComponentId()`) and any type of default configuration.
 
 
-### How this repo is kept insync with webgme
+### How this repo is kept in sync with webgme
 When there are changes to any of the corresponding files in the webgme repo - these files need to be updated. Copy the 
 entire folders and change the requirejs paths to point to `widgets/*` and `panels/*` from `js/Widgets/*` and `js/Panels/*`
 where applicable.
