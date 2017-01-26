@@ -37,8 +37,10 @@ changing the componentId (typically returned from `getComponentId()`) and any ty
 
 
 ### How this repo is kept in sync with webgme
-When there are changes to any of the corresponding files in the webgme repo - these files need to be updated. Copy the 
+__This section is intended for the webgme team..__
+
+When there are changes to any of the corresponding files in the webgme repo - the files here need to be updated. Copy the 
 entire folders and change the requirejs paths to point to `widgets/*` and `panels/*` from `js/Widgets/*` and `js/Panels/*`
 where applicable.
 
-We will make sure to maintain this repo at new webgme releases (at minimum).
+We will make sure to maintain this repo at new webgme releases (at a minimum).
