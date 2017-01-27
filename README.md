@@ -1,13 +1,13 @@
 This repository contains the Panels, Controllers and Widgets making up the ModelEditor, SetEditor and Crosscut visualizers
 from the generic UI.
 
-The idea of this repository is to enable modifications of the aforementioned visualizers without the of keeping a fork
-of webgme repo (which is a highly volatile), but instead forking off from this repo and import the visualizers
+The idea of this repository is to enable modifications of the aforementioned visualizers without keeping a fork
+of webgme repo (which is a highly volatile) and instead forking off from this repo and import the visualizers
 from that fork into your own domain repo.
 
 Note that not all dependencies of the visualizers are checked in here. For instance the DragHelper is referred to at 
 `'js/DragDrop/DragHelper'` (that is it's coming from the webgme-repo). In order to switch out components like this, 
-you just change the path in your fork.
+you just change the path in the code.
 
 ### Importing the visualizers
 To import the visualizers from the particular repository (for a fork simple replace the webgme/diagram-designers with your
