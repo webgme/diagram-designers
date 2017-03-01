@@ -202,6 +202,7 @@ define(['js/logger',
 
             if (nodeId !== this.currentNodeInfo.id) {
                 //fill the descriptor based on its type
+                objDescriptor.metaTypeId = nodeObj.getMetaTypeId();
                 if (GMEConcepts.isConnection(nodeId)) {
                     objDescriptor.connectionChanged = this._GMEModels.indexOf(nodeId) > -1 &&
                         this._GMEConnections.indexOf(nodeId) === -1;
@@ -350,6 +351,7 @@ define(['js/logger',
             self = this,
             orderedItemEvents,
             orderedConnectionEvents,
+            connectorEnds,
             unloadEvents,
 
             srcGMEID,
@@ -371,9 +373,11 @@ define(['js/logger',
 
         /********** ORDER EVENTS BASED ON DEPENDENCY ************/
         /** 1: items first, no dependency **/
-        /** 2: connections second, dependency if a connection is connected to an other connection **/
+        /** 2: ConnectorEnds - Trigger and Synchron **/
+        /** 3: connections dependency if a connection is connected to an other connection **/
         orderedItemEvents = [];
         orderedConnectionEvents = [];
+        connectorEnds = [];
 
         if (this._delayedConnections && this._delayedConnections.length > 0) {
             /*this.logger.warn('_delayedConnections: ' + this._delayedConnections.length );*/
@@ -396,7 +400,12 @@ define(['js/logger',
             if (e.etype === CONSTANTS.TERRITORY_EVENT_UNLOAD) {
                 unloadEvents.push(e);
             } else if (e.desc.kind === 'MODEL') {
-                orderedItemEvents.push(e);
+                if (this.isOfMetaTypeName(e.desc.metaTypeId, 'ConnectorEnd')) {
+                    e.desc.metaTypeName = 'ConnectorEnd';
+                    connectorEnds.push(e);
+                } else {
+                    orderedItemEvents.push(e);
+                }
             } else if (e.desc.kind === 'CONNECTION') {
                 if (e.desc.parentId === this.currentNodeInfo.id) {
                     //check to see if SRC and DST is another connection
@@ -464,14 +473,11 @@ define(['js/logger',
 
         }
 
-        events = unloadEvents.concat(orderedItemEvents);
-        i = events.length;
 
+        // Regular objects
         this._notifyPackage = {};
-
         this.designerCanvas.beginUpdate();
-
-        //items
+        events = unloadEvents.concat(orderedItemEvents);
         for (i = 0; i < events.length; i += 1) {
             e = events[i];
             switch (e.etype) {
@@ -489,11 +495,27 @@ define(['js/logger',
 
         this._handleDecoratorNotification();
 
+        // ConnectorEnds
+        events = connectorEnds;
+        for (i = 0; i < events.length; i += 1) {
+            e = events[i];
+            switch (e.etype) {
+                case CONSTANTS.TERRITORY_EVENT_LOAD:
+                    territoryChanged = this._onLoad(e.eid, e.desc) || territoryChanged;
+                    break;
+                case CONSTANTS.TERRITORY_EVENT_UPDATE:
+                    this._onUpdate(e.eid, e.desc);
+                    break;
+                case CONSTANTS.TERRITORY_EVENT_UNLOAD:
+                    territoryChanged = this._onUnload(e.eid) || territoryChanged;
+                    break;
+            }
+        }
+
         //connections
         events = orderedConnectionEvents;
-        i = events.length;
 
-        //items
+        //connections
         for (i = 0; i < events.length; i += 1) {
             e = events[i];
             switch (e.etype) {
@@ -581,7 +603,7 @@ define(['js/logger',
             getDecoratorTerritoryQueries,
             territoryChanged = false,
             self = this,
-
+            connectorEndPos,
             srcDst,
             k,
             l;
@@ -625,13 +647,20 @@ define(['js/logger',
                         objDesc.preferencesHelper = PreferencesHelper.getPreferences();
                         objDesc.aspect = this._selectedAspect;
 
+                        if (objDesc.metaTypeName === 'ConnectorEnd') {
+                            connectorEndPos = this.getEnforceableTransitionPosition(objDesc);
+                            if (connectorEndPos) {
+                                objDesc.position.x = connectorEndPos.x1;
+                                objDesc.position.y = connectorEndPos.y1;
+                            }
+                        }
+
                         uiComponent = this.designerCanvas.createDesignerItem(objDesc);
 
                         this._GMEID2ComponentID[gmeID].push(uiComponent.id);
                         this._ComponentID2GMEID[uiComponent.id] = gmeID;
 
                         getDecoratorTerritoryQueries(uiComponent._decoratorInstance);
-
                     }
 
                     if (objDesc.kind === 'CONNECTION') {
@@ -702,7 +731,8 @@ define(['js/logger',
             destinations,
             k,
             l,
-            uiComponent;
+            uiComponent,
+            connectorEndPos;
 
         //self or child updated
         //check if the updated object is the opened node
@@ -726,6 +756,14 @@ define(['js/logger',
                                 objDesc.decoratorClass = decClass;
                                 objDesc.preferencesHelper = PreferencesHelper.getPreferences();
                                 objDesc.aspect = this._selectedAspect;
+
+                                if (objDesc.metaTypeName === 'ConnectorEnd') {
+                                    connectorEndPos = this.getEnforceableTransitionPosition(objDesc);
+                                    if (connectorEndPos) {
+                                        objDesc.position.x = connectorEndPos.x1;
+                                        objDesc.position.y = connectorEndPos.y1;
+                                    }
+                                }
 
                                 this.designerCanvas.updateDesignerItem(componentID, objDesc);
                             }
@@ -1255,6 +1293,65 @@ define(['js/logger',
 
     ModelEditorControl.prototype.getConnectionDescriptor = function (/* gmeID */) {
         return {};
+    };
+
+    ModelEditorControl.prototype.isOfMetaTypeName = function (metaNodeId, metaTypeName) {
+        var metaNode = this._client.getNode(metaNodeId),
+            baseId;
+
+        while (metaNode) {
+            if (metaNode.getAttribute('name') === metaTypeName) {
+                return true;
+            }
+
+            baseId = metaNode.getBaseId();
+            if (!baseId) {
+                return false;
+            }
+
+            metaNode = this._client.getNode(baseId);
+        }
+    };
+
+    ModelEditorControl.prototype.getEnforceableTransitionPosition = function (objDesc) {
+        var self = this,
+            connectorEndNode = this._client.getNode(objDesc.id),
+            sources = connectorEndNode.getCollectionPaths('src'),
+            result;
+
+        sources.forEach(function (connId) {
+            var connectionNode = self._client.getNode(connId),
+                transitionId,
+                transitionNode,
+                componentTypeItemId,
+                portConnArea;
+
+            if (connectionNode && self.isOfMetaTypeName(connectionNode.getMetaTypeId(), 'Connection')) {
+                transitionId = connectionNode.getPointerId('dst');
+                transitionNode = transitionId ? self._client.getNode(transitionId) : null;
+                if (transitionNode) {
+                    debugger;
+                    if (self._GMEID2Subcomponent && self._GMEID2Subcomponent[transitionId]) {
+                        for (componentTypeItemId in self._GMEID2Subcomponent[transitionId]) {
+                            if (self._GMEID2Subcomponent[transitionId].hasOwnProperty(componentTypeItemId)) {
+                                break;
+                            }
+                        }
+                    }
+
+                    if (componentTypeItemId && self.designerCanvas.items[componentTypeItemId]._decoratorInstance) {
+                        portConnArea = self.designerCanvas.items[componentTypeItemId]
+                            ._decoratorInstance.getConnectionAreas(transitionId);
+
+                        if (portConnArea.length === 1) {
+                            result = portConnArea[0];
+                        }
+                    }
+                }
+            }
+        });
+
+        return result;
     };
 
     ModelEditorControl.getDefaultConfig = function () {
