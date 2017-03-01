@@ -2,6 +2,7 @@
 /*jshint browser: true */
 /**
  * @author rkereskenyi / https://github.com/rkereskenyi
+ * @author pmeijer / https://github.com/pmeijer
  */
 
 define(['js/logger',
@@ -648,10 +649,10 @@ define(['js/logger',
                         objDesc.aspect = this._selectedAspect;
 
                         if (objDesc.metaTypeName === 'ConnectorEnd') {
-                            connectorEndPos = this.getEnforceableTransitionPosition(objDesc);
+                            connectorEndPos = this.getBIPConnectorEndPosition(objDesc);
                             if (connectorEndPos) {
-                                objDesc.position.x = connectorEndPos.x1;
-                                objDesc.position.y = connectorEndPos.y1;
+                                objDesc.position.x = connectorEndPos.x;
+                                objDesc.position.y = connectorEndPos.y;
                             }
                         }
 
@@ -758,10 +759,10 @@ define(['js/logger',
                                 objDesc.aspect = this._selectedAspect;
 
                                 if (objDesc.metaTypeName === 'ConnectorEnd') {
-                                    connectorEndPos = this.getEnforceableTransitionPosition(objDesc);
+                                    connectorEndPos = this.getBIPConnectorEndPosition(objDesc);
                                     if (connectorEndPos) {
-                                        objDesc.position.x = connectorEndPos.x1;
-                                        objDesc.position.y = connectorEndPos.y1;
+                                        objDesc.position.x = connectorEndPos.x;
+                                        objDesc.position.y = connectorEndPos.y;
                                     }
                                 }
 
@@ -1313,7 +1314,7 @@ define(['js/logger',
         }
     };
 
-    ModelEditorControl.prototype.getEnforceableTransitionPosition = function (objDesc) {
+    ModelEditorControl.prototype.getBIPConnectorEndPosition = function (objDesc) {
         var self = this,
             connectorEndNode = this._client.getNode(objDesc.id),
             sources = connectorEndNode.getCollectionPaths('src'),
@@ -1321,30 +1322,29 @@ define(['js/logger',
 
         sources.forEach(function (connId) {
             var connectionNode = self._client.getNode(connId),
+                decorator,
                 transitionId,
                 transitionNode,
                 componentTypeItemId,
+                componentTypeNode,
                 portConnArea;
 
             if (connectionNode && self.isOfMetaTypeName(connectionNode.getMetaTypeId(), 'Connection')) {
                 transitionId = connectionNode.getPointerId('dst');
                 transitionNode = transitionId ? self._client.getNode(transitionId) : null;
-                if (transitionNode) {
-                    debugger;
-                    if (self._GMEID2Subcomponent && self._GMEID2Subcomponent[transitionId]) {
-                        for (componentTypeItemId in self._GMEID2Subcomponent[transitionId]) {
-                            if (self._GMEID2Subcomponent[transitionId].hasOwnProperty(componentTypeItemId)) {
-                                break;
-                            }
-                        }
-                    }
+                if (transitionNode && self.isOfMetaTypeName(transitionNode.getMetaTypeId(), 'EnforceableTransition')) {
 
-                    if (componentTypeItemId && self.designerCanvas.items[componentTypeItemId]._decoratorInstance) {
-                        portConnArea = self.designerCanvas.items[componentTypeItemId]
-                            ._decoratorInstance.getConnectionAreas(transitionId);
+                    componentTypeNode = self._client.getNode(transitionNode.getParentId());
+                    if (self.isOfMetaTypeName(componentTypeNode.getMetaTypeId(), 'ComponentType')) {
 
-                        if (portConnArea.length === 1) {
-                            result = portConnArea[0];
+                        componentTypeItemId = self._GMEID2ComponentID[componentTypeNode.getId()] &&
+                            self._GMEID2ComponentID[componentTypeNode.getId()][0];
+
+                        decorator = componentTypeItemId && self.designerCanvas.items[componentTypeItemId]
+                                ._decoratorInstance;
+
+                        if (decorator && typeof decorator.getConnectorEndPosition === 'function') {
+                            result = decorator.getConnectorEndPosition(transitionId, connectorEndNode.getId());
                         }
                     }
                 }
