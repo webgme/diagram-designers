@@ -355,6 +355,10 @@ define(['js/logger',
             connectorEnds,
             unloadEvents,
 
+            extraConnEndsUpdates = {},
+            extraComponentTypeUpdates = {},
+            handledEvents = {},
+
             srcGMEID,
             dstGMEID,
             srcConnIdx,
@@ -397,14 +401,34 @@ define(['js/logger',
         i = events.length;
         while (i--) {
             e = events[i];
+            handledEvents[e.eid] = true;
 
             if (e.etype === CONSTANTS.TERRITORY_EVENT_UNLOAD) {
                 unloadEvents.push(e);
             } else if (e.desc.kind === 'MODEL') {
                 if (this.isOfMetaTypeName(e.desc.metaTypeId, 'ConnectorEnd')) {
                     e.desc.metaTypeName = 'ConnectorEnd';
+                    this.getConnectedComponentTypeFromConnectorEnd(e.desc).forEach(function (ctId) {
+                        extraComponentTypeUpdates[ctId] = self._getObjectDescriptor(ctId);
+
+                        // If the ComponentType changes -> all the associated ConnectorEnds may change too.
+                        self.getConnectedConnectorEndsFromComponentType(extraComponentTypeUpdates[ctId])
+                            .forEach(function (ceId) {
+                                var ceObjDesc = self._getObjectDescriptor(ceId);
+                                ceObjDesc.metaTypeName = 'ConnectorEnd';
+                                extraConnEndsUpdates[ceId] = ceObjDesc;
+                            });
+                    });
+
                     connectorEnds.push(e);
                 } else {
+                    if (this.isOfMetaTypeName(e.desc.metaTypeId, 'ComponentType')) {
+                        this.getConnectedConnectorEndsFromComponentType(e.desc).forEach(function (ceId) {
+                            var ceObjDesc = self._getObjectDescriptor(ceId);
+                            ceObjDesc.metaTypeName = 'ConnectorEnd';
+                            extraConnEndsUpdates[ceId] = ceObjDesc;
+                        });
+                    }
                     orderedItemEvents.push(e);
                 }
             } else if (e.desc.kind === 'CONNECTION') {
@@ -474,8 +498,12 @@ define(['js/logger',
 
         }
 
+        console.log('######### Extra Events ##########');
+        console.log('events', events.map(function (e) { return e.eid}));
+        console.log('extraComponentTypeUpdates', Object.keys(extraComponentTypeUpdates));
+        console.log('extraConnEndsUpdates', Object.keys(extraConnEndsUpdates));
 
-        // Regular objects
+        // Regular models
         this._notifyPackage = {};
         this.designerCanvas.beginUpdate();
         events = unloadEvents.concat(orderedItemEvents);
@@ -493,6 +521,13 @@ define(['js/logger',
                     break;
             }
         }
+
+        // Handle the extra componentType events
+        Object.keys(extraComponentTypeUpdates).forEach(function (eid) {
+            if (!handledEvents[eid]) {
+                self._onUpdate(eid, extraComponentTypeUpdates[eid]);
+            }
+        })
 
         this._handleDecoratorNotification();
 
@@ -513,10 +548,15 @@ define(['js/logger',
             }
         }
 
-        //connections
-        events = orderedConnectionEvents;
+        // Handle the extra componentType events
+        Object.keys(extraConnEndsUpdates).forEach(function (eid) {
+            if (!handledEvents[eid]) {
+                self._onUpdate(eid, extraConnEndsUpdates[eid]);
+            }
+        })
 
         //connections
+        events = orderedConnectionEvents;
         for (i = 0; i < events.length; i += 1) {
             e = events[i];
             switch (e.etype) {
@@ -734,6 +774,8 @@ define(['js/logger',
             l,
             uiComponent,
             connectorEndPos;
+
+        console.log('Update Trigger for', gmeID);
 
         //self or child updated
         //check if the updated object is the opened node
@@ -1314,6 +1356,70 @@ define(['js/logger',
         }
     };
 
+    ModelEditorControl.prototype.getConnectedComponentTypeFromConnectorEnd = function (objDesc) {
+        var self = this,
+            connectorEndNode = this._client.getNode(objDesc.id),
+            sources = connectorEndNode.getCollectionPaths('src'),
+            result = [];
+
+        sources.forEach(function (connId) {
+            var connectionNode = self._client.getNode(connId),
+                transitionId,
+                transitionNode,
+                componentTypeItemId,
+                componentTypeNode;
+
+            if (connectionNode && self.isOfMetaTypeName(connectionNode.getMetaTypeId(), 'Connection')) {
+                transitionId = connectionNode.getPointerId('dst');
+                transitionNode = transitionId ? self._client.getNode(transitionId) : null;
+                if (transitionNode && self.isOfMetaTypeName(transitionNode.getMetaTypeId(), 'EnforceableTransition')) {
+
+                    componentTypeNode = self._client.getNode(transitionNode.getParentId());
+                    if (self.isOfMetaTypeName(componentTypeNode.getMetaTypeId(), 'ComponentType')) {
+                        result.push(componentTypeNode.getId());
+                    }
+                }
+            }
+        });
+
+        return result;
+    };
+
+    ModelEditorControl.prototype.getConnectedConnectorEndsFromComponentType = function (objDesc) {
+        var self = this,
+            componentTypeNode = this._client.getNode(objDesc.id),
+            childrenIds = componentTypeNode.getChildrenIds(),
+            result = [];
+
+        childrenIds.forEach(function (enfTransId) {
+            var enfTransNode = self._client.getNode(enfTransId);
+            if (enfTransNode) {
+                if (GMEConcepts.isPort(enfTransId) &&
+                    self.isOfMetaTypeName(enfTransNode.getMetaTypeId(), 'EnforceableTransition')) {
+
+                    enfTransNode.getCollectionPaths('dst').forEach(function (connectionId) {
+                        var connNode = self._client.getNode(connectionId),
+                            connEndNode;
+
+                        if (connNode && connNode.getPointerId('src')) {
+                            connEndNode = self._client.getNode(connNode.getPointerId('src'));
+                            if (self.isOfMetaTypeName(connEndNode.getMetaTypeId(), 'ConnectorEnd')) {
+                                result.push(connEndNode.getId());
+                            }
+
+                        } else {
+                            console.warn('connection not available', connectionId);
+                        }
+                    });
+                }
+            } else {
+                console.warn('Child not available', enfTransId);
+            }
+        });
+
+        return result;
+    };
+
     ModelEditorControl.prototype.getBIPConnectorEndPosition = function (objDesc) {
         var self = this,
             connectorEndNode = this._client.getNode(objDesc.id),
@@ -1326,8 +1432,7 @@ define(['js/logger',
                 transitionId,
                 transitionNode,
                 componentTypeItemId,
-                componentTypeNode,
-                portConnArea;
+                componentTypeNode;
 
             if (connectionNode && self.isOfMetaTypeName(connectionNode.getMetaTypeId(), 'Connection')) {
                 transitionId = connectionNode.getPointerId('dst');
