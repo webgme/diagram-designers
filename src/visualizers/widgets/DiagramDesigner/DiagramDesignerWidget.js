@@ -864,6 +864,9 @@ define([
             itemID,
             item;
 
+        // We do not care about overlaps here.. and it messes with the connEnds.
+        return;
+
         //check if position has to be adjusted to not to put it on some other model
         while (posChanged === true) {
             posChanged = false;
