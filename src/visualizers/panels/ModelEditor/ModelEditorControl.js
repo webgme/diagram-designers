@@ -1031,16 +1031,17 @@ define(['js/logger',
         } else {
             //dst is not a DesignerItem
             //must be a sub_components somewhere, find the corresponding designerItem
-            if (this._GMEID2Subcomponent && this._GMEID2Subcomponent.hasOwnProperty(GMEDstId)) {
-                for (i in this._GMEID2Subcomponent[GMEDstId]) {
-                    if (this._GMEID2Subcomponent[GMEDstId].hasOwnProperty(i)) {
-                        destinations.push({
-                            objId: i,
-                            subCompId: this._GMEID2Subcomponent[GMEDstId][i]
-                        });
-                    }
-                }
-            }
+            // // BIP: Do not render the connection
+            // if (this._GMEID2Subcomponent && this._GMEID2Subcomponent.hasOwnProperty(GMEDstId)) {
+            //     for (i in this._GMEID2Subcomponent[GMEDstId]) {
+            //         if (this._GMEID2Subcomponent[GMEDstId].hasOwnProperty(i)) {
+            //             destinations.push({
+            //                 objId: i,
+            //                 subCompId: this._GMEID2Subcomponent[GMEDstId][i]
+            //             });
+            //         }
+            //     }
+            // }
         }
 
         return {
