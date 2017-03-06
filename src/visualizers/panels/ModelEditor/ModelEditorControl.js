@@ -170,11 +170,11 @@ define(['js/logger',
                 // Update the connection route-manager based on type..
                 if (this.isOfMetaTypeName(node.getMetaTypeId(), 'ComponentType')) {
                     if (this._connectionManagerType !== 'basic') {
-                        this._widget._onConnectionRouteManagerChanged('basic');
+                        this.designerCanvas._onConnectionRouteManagerChanged('basic');
                         this._connectionManagerType = 'basic';
                     }
                 } else if (this._connectionManagerType !== 'basic2') {
-                    this._widget._onConnectionRouteManagerChanged('basic2');
+                    this.designerCanvas._onConnectionRouteManagerChanged('basic2');
                     this._connectionManagerType = 'basic2';
                 }
             }
@@ -434,7 +434,7 @@ define(['js/logger',
 
                     connectorEnds.push(e);
                 } else {
-                    if (this.isOfMetaTypeName(e.desc.metaTypeId, 'ComponentType')) {
+                    if (this.isOfMetaTypeName(e.desc.metaTypeId, ['ComponentType', 'CompoundType'])) {
                         this.getConnectedConnectorEndsFromComponentType(e.desc).forEach(function (ceId) {
                             var ceObjDesc = self._getObjectDescriptor(ceId);
                             ceObjDesc.metaTypeName = 'ConnectorEnd';
@@ -1350,12 +1350,14 @@ define(['js/logger',
         return {};
     };
 
-    ModelEditorControl.prototype.isOfMetaTypeName = function (metaNodeId, metaTypeName) {
+    ModelEditorControl.prototype.isOfMetaTypeName = function (metaNodeId, metaTypeNames) {
         var metaNode = this._client.getNode(metaNodeId),
             baseId;
 
+        metaTypeNames = metaTypeNames instanceof Array ? metaTypeNames : [metaTypeNames];
+
         while (metaNode) {
-            if (metaNode.getAttribute('name') === metaTypeName) {
+            if (metaTypeNames.indexOf(metaNode.getAttribute('name')) > -1) {
                 return true;
             }
 
@@ -1377,17 +1379,21 @@ define(['js/logger',
         sources.forEach(function (connId) {
             var connectionNode = self._client.getNode(connId),
                 transitionId,
-                transitionNode,
+                portNode,
                 componentTypeItemId,
                 componentTypeNode;
 
             if (connectionNode && self.isOfMetaTypeName(connectionNode.getMetaTypeId(), 'Connection')) {
                 transitionId = connectionNode.getPointerId('dst');
-                transitionNode = transitionId ? self._client.getNode(transitionId) : null;
-                if (transitionNode && self.isOfMetaTypeName(transitionNode.getMetaTypeId(), 'EnforceableTransition')) {
+                portNode = transitionId ? self._client.getNode(transitionId) : null;
+                if (portNode &&
+                    self.isOfMetaTypeName(portNode.getMetaTypeId(), ['EnforceableTransition', 'ExportPort'])) {
 
-                    componentTypeNode = self._client.getNode(transitionNode.getParentId());
-                    if (self.isOfMetaTypeName(componentTypeNode.getMetaTypeId(), 'ComponentType')) {
+                    componentTypeNode = self._client.getNode(portNode.getParentId());
+                    if (componentTypeNode &&
+                        componentTypeNode.getParentId() === self.currentNodeInfo.id &&
+                        self.isOfMetaTypeName(componentTypeNode.getMetaTypeId(), ['ComponentType', 'CompoundType'])) {
+
                         result.push(componentTypeNode.getId());
                     }
                 }
@@ -1407,13 +1413,16 @@ define(['js/logger',
             var enfTransNode = self._client.getNode(enfTransId);
             if (enfTransNode) {
                 if (GMEConcepts.isPort(enfTransId) &&
-                    self.isOfMetaTypeName(enfTransNode.getMetaTypeId(), 'EnforceableTransition')) {
+                    self.isOfMetaTypeName(enfTransNode.getMetaTypeId(), ['EnforceableTransition', 'ExportPort'])) {
 
                     enfTransNode.getCollectionPaths('dst').forEach(function (connectionId) {
                         var connNode = self._client.getNode(connectionId),
                             connEndNode;
 
-                        if (connNode && connNode.getPointerId('src')) {
+                        if (connNode &&
+                            connNode.getParentId() === self.currentNodeInfo.id &&
+                            connNode.getPointerId('src')) {
+
                             connEndNode = self._client.getNode(connNode.getPointerId('src'));
                             if (self.isOfMetaTypeName(connEndNode.getMetaTypeId(), 'ConnectorEnd')) {
                                 result.push(connEndNode.getId());
@@ -1442,17 +1451,20 @@ define(['js/logger',
             var connectionNode = self._client.getNode(connId),
                 decorator,
                 transitionId,
-                transitionNode,
+                portNode,
                 componentTypeItemId,
                 componentTypeNode;
 
             if (connectionNode && self.isOfMetaTypeName(connectionNode.getMetaTypeId(), 'Connection')) {
                 transitionId = connectionNode.getPointerId('dst');
-                transitionNode = transitionId ? self._client.getNode(transitionId) : null;
-                if (transitionNode && self.isOfMetaTypeName(transitionNode.getMetaTypeId(), 'EnforceableTransition')) {
+                portNode = transitionId ? self._client.getNode(transitionId) : null;
+                if (portNode &&
+                    self.isOfMetaTypeName(portNode.getMetaTypeId(), ['EnforceableTransition', 'ExportPort'])) {
 
-                    componentTypeNode = self._client.getNode(transitionNode.getParentId());
-                    if (self.isOfMetaTypeName(componentTypeNode.getMetaTypeId(), 'ComponentType')) {
+                    componentTypeNode = self._client.getNode(portNode.getParentId());
+                    if (componentTypeNode &&
+                        componentTypeNode.getParentId() === self.currentNodeInfo.id &&
+                        self.isOfMetaTypeName(componentTypeNode.getMetaTypeId(), ['ComponentType', 'CompoundType'])) {
 
                         componentTypeItemId = self._GMEID2ComponentID[componentTypeNode.getId()] &&
                             self._GMEID2ComponentID[componentTypeNode.getId()][0];
