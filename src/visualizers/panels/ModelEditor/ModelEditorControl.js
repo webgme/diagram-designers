@@ -817,6 +817,7 @@ define(['js/logger',
                                     if (connectorEndPos) {
                                         objDesc.position.x = connectorEndPos.x;
                                         objDesc.position.y = connectorEndPos.y;
+                                        objDesc.relativeOrientation = connectorEndPos.relativeOrientation;
                                     }
                                 }
 

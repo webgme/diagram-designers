@@ -179,8 +179,8 @@ define([
         }
     };
 
-    DesignerItem.prototype.addToDocFragment = function (docFragment) {
-        this._callDecoratorMethod('on_addTo');
+    DesignerItem.prototype.addToDocFragment = function (docFragment, objDesc) {
+        this._callDecoratorMethod('on_addTo', [objDesc]);
 
         this.$el.append(this._decoratorInstance.$el);
 
@@ -370,14 +370,14 @@ define([
 
             this.logger.debug('DesignerItem\'s ["' + this.id + '"] decorator  has been updated.');
 
-            this._callDecoratorMethod('on_addTo');
+            this._callDecoratorMethod('on_addTo', [objDescriptor]);
         } else {
             //if decorator instance not changed
             //let the decorator instance know about the update
             if (objDescriptor.metaInfo) {
                 this._decoratorInstance.setMetaInfo(objDescriptor.metaInfo);
             }
-            this._decoratorInstance.update();
+            this._decoratorInstance.update(objDescriptor);
         }
     };
 
