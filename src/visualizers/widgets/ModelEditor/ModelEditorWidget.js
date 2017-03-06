@@ -22,6 +22,7 @@ define([
         params.addTabs = false;
         params.deleteTabs = false;
         params.reorderTabs = false;
+        params.gridSize = 1;
 
         DiagramDesignerWidget.call(this, container, params);
 
