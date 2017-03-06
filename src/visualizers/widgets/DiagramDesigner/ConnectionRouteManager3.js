@@ -32,13 +32,7 @@ define([
             this._onItemCreateQueue = {};
             this.workerQueue = [];
 
-            // TODO: If merging into one js file, this may break
-            var currentDir = module.id.split('/'),
-                workerFile;
-
-            currentDir.pop();
-            currentDir = currentDir.join('/');
-            workerFile = currentDir + '/AutoRouter.Worker.js';
+            var workerFile = 'js/widgets/DiagramDesigner/AutoRouter.Worker.js';
 
             this.worker = new Worker(workerFile);
             this.worker.postMessage([WebGMEGlobal.gmeConfig.client]);

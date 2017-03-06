@@ -49,6 +49,7 @@ define(['js/logger',
 
         this._firstLoad = false;
         this._topNode = CONSTANTS.PROJECT_ROOT_ID;
+        this._connectionManagerType = 'basic';
 
         //initialize core collections and variables
         this.designerCanvas = options.widget;
@@ -165,6 +166,17 @@ define(['js/logger',
             if (node && !this._client.isProjectReadOnly() && !this._client.isCommitReadOnly()) {
                 this.designerCanvas.setReadOnly(node.isLibraryRoot() || node.isLibraryElement());
                 this.setReadOnly(node.isLibraryRoot() || node.isLibraryElement());
+
+                // Update the connection route-manager based on type..
+                if (this.isOfMetaTypeName(node.getMetaTypeId(), 'ComponentType')) {
+                    if (this._connectionManagerType !== 'basic') {
+                        this._widget._onConnectionRouteManagerChanged('basic');
+                        this._connectionManagerType = 'basic';
+                    }
+                } else if (this._connectionManagerType !== 'basic2') {
+                    this._widget._onConnectionRouteManagerChanged('basic2');
+                    this._connectionManagerType = 'basic2';
+                }
             }
 
             this.designerCanvas.showProgressbar();

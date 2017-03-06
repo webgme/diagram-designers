@@ -23,6 +23,9 @@ define([
         params.deleteTabs = false;
         params.reorderTabs = false;
         params.gridSize = 1;
+        // Routing manager is switched based on context
+        params.defaultConnectionRouteManagerType = 'basic';
+        params.disableConnectionRendering = true;
 
         DiagramDesignerWidget.call(this, container, params);
 
