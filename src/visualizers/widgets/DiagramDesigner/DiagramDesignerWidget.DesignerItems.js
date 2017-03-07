@@ -45,7 +45,7 @@ define(['./DesignerItem'], function (DesignerItem) {
             objDescriptor.metaInfo, objDescriptor.preferencesHelper,
             objDescriptor.aspect, objDescriptor.decoratorParams);
 
-        newComponent.addToDocFragment(this._documentFragment);
+        newComponent.addToDocFragment(this._documentFragment, objDescriptor);
 
         return newComponent;
     };
@@ -105,7 +105,7 @@ define(['./DesignerItem'], function (DesignerItem) {
     //NOTE: could/should be overridden in the CONTROLLER
     DiagramDesignerWidgetDesignerItems.prototype.onDesignerItemDoubleClick = function (id, event) {
         this.logger.debug('DesignerItem "' + id + '" received double click at pos: [' +
-        event.offsetX + ', ' + event.offsetY + ']');
+            event.offsetX + ', ' + event.offsetY + ']');
     };
 
     DiagramDesignerWidgetDesignerItems.prototype.notifyItemComponentEvents = function (itemId, eventList) {
