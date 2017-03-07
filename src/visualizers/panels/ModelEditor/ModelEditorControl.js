@@ -366,6 +366,7 @@ define(['js/logger',
             orderedConnectionEvents,
             connectorEnds,
             unloadEvents,
+            objDesc,
 
             extraConnEndsUpdates = {},
             extraComponentTypeUpdates = {},
@@ -399,11 +400,16 @@ define(['js/logger',
         if (this._delayedConnections && this._delayedConnections.length > 0) {
             /*this.logger.warn('_delayedConnections: ' + this._delayedConnections.length );*/
             for (i = 0; i < this._delayedConnections.length; i += 1) {
-                orderedConnectionEvents.push({
-                    etype: CONSTANTS.TERRITORY_EVENT_LOAD,
-                    eid: this._delayedConnections[i],
-                    desc: this._getObjectDescriptor(this._delayedConnections[i])
-                });
+                objDesc = this._getObjectDescriptor(this._delayedConnections[i]);
+                if (objDesc) {
+                    orderedConnectionEvents.push({
+                        etype: CONSTANTS.TERRITORY_EVENT_LOAD,
+                        eid: this._delayedConnections[i],
+                        desc: objDesc
+                    });
+                } else {
+                    // The connection was unloaded at this point..
+                }
             }
         }
 
