@@ -1776,7 +1776,7 @@ define([
             } else {
                 self.skinParts.name = self._textMultiNameBase.clone();
                 self.name.forEach(function (namePiece) {
-                    var namePieceEl = $('<div class="c-name"></div>', {text: namePiece});
+                    var namePieceEl = $('<div class="c-name"></div>').text(namePiece);
                     self.skinParts.name.append(namePieceEl);
                 });
             }
