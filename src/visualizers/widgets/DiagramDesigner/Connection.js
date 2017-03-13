@@ -1680,6 +1680,7 @@ define([
 
     Connection.prototype._textContainer = $('<div class="c-t"></div>');
     Connection.prototype._textNameBase = $('<div class="c-text"><span class="c-name"></span></div>');
+    Connection.prototype._textMultiNameBase = $('<div class="c-text"></div>');
     Connection.prototype._textSrcBase = $('<div class="c-text"><span class="c-src"></span></div>');
     Connection.prototype._textDstBase = $('<div class="c-text"><span class="c-dst"></span></div>');
 
@@ -1739,36 +1740,56 @@ define([
         this._hideTexts();
 
         function drawName() {
-            var pathCenter = self._getMidPoint();
+            var pathCenter = self._getMidPoint(),
+                nameStr;
 
-            self.skinParts.name = self._textNameBase.clone();
+            if (self.name instanceof Array) {
+                if (self.name.length === 1) {
+                    nameStr = self.name[0];
+                }
+            } else {
+                nameStr = self.name;
+            }
+
+            if (nameStr) {
+                self.skinParts.name = self._textNameBase.clone();
+                self.skinParts.name.find('span').text(self.name);
+
+                if ((pathCenter.alpha >= 45 && pathCenter.alpha <= 135) ||
+                    (pathCenter.alpha >= 225 && pathCenter.alpha <= 315)) {
+                    self.skinParts.name.find('span').addClass('v');
+                }
+
+                // set title editable on double-click
+                self.skinParts.name.find('span').on('dblclick.editOnDblClick', null, function (event) {
+                    if (self.nameEdit === true && self.diagramDesigner.getIsReadOnlyMode() !== true) {
+                        $(this).editInPlace({
+                            class: '',
+                            onChange: function (oldValue, newValue) {
+                                self._onNameChanged(oldValue, newValue);
+                            }
+                        });
+                    }
+                    event.stopPropagation();
+                    event.preventDefault();
+                });
+            } else {
+                self.skinParts.name = self._textMultiNameBase.clone();
+                self.name.forEach(function (namePiece) {
+                    var namePieceEl = $('<div class="c-name"></div>', {text: namePiece});
+                    self.skinParts.name.append(namePieceEl);
+                });
+            }
+
             self.skinParts.name.css({
                 top: pathCenter.y - 2 + self.designerAttributes.width,
                 left: pathCenter.x,
                 color: self.designerAttributes.color
             });
-            self.skinParts.name.find('span').text(self.name);
+
             self.skinParts.textContainer.append(self.skinParts.name);
+
             $(self.diagramDesigner.skinParts.$itemsContainer.children()[0]).after(self.skinParts.textContainer);
-
-            if ((pathCenter.alpha >= 45 && pathCenter.alpha <= 135) ||
-                (pathCenter.alpha >= 225 && pathCenter.alpha <= 315)) {
-                self.skinParts.name.find('span').addClass('v');
-            }
-
-            // set title editable on double-click
-            self.skinParts.name.find('span').on('dblclick.editOnDblClick', null, function (event) {
-                if (self.nameEdit === true && self.diagramDesigner.getIsReadOnlyMode() !== true) {
-                    $(this).editInPlace({
-                        class: '',
-                        onChange: function (oldValue, newValue) {
-                            self._onNameChanged(oldValue, newValue);
-                        }
-                    });
-                }
-                event.stopPropagation();
-                event.preventDefault();
-            });
         }
 
         function drawSrc() {
