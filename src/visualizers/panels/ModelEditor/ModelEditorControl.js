@@ -173,9 +173,9 @@ define(['js/logger',
                         this.designerCanvas._onConnectionRouteManagerChanged('basic');
                         this._connectionManagerType = 'basic';
                     }
-                } else if (this._connectionManagerType !== 'basic2') {
-                    this.designerCanvas._onConnectionRouteManagerChanged('basic2');
-                    this._connectionManagerType = 'basic2';
+                } else if (this._connectionManagerType !== 'basic3') {
+                    this.designerCanvas._onConnectionRouteManagerChanged('basic3');
+                    this._connectionManagerType = 'basic3';
                 }
             }
 
@@ -523,11 +523,6 @@ define(['js/logger',
 
         }
 
-        console.log('######### Extra Events ##########');
-        console.log('events', events.map(function (e) { return e.eid}));
-        console.log('extraComponentTypeUpdates', Object.keys(extraComponentTypeUpdates));
-        console.log('extraConnEndsUpdates', Object.keys(extraConnEndsUpdates));
-
         // Regular models
         this._notifyPackage = {};
         this.designerCanvas.beginUpdate();
@@ -800,8 +795,6 @@ define(['js/logger',
             l,
             uiComponent,
             connectorEndPos;
-
-        console.log('Update Trigger for', gmeID);
 
         //self or child updated
         //check if the updated object is the opened node
@@ -1445,12 +1438,12 @@ define(['js/logger',
                             }
 
                         } else {
-                            console.warn('connection not available', connectionId);
+                            self.logger.warn('connection not available', connectionId);
                         }
                     });
                 }
             } else {
-                console.warn('Child not available', enfTransId);
+                self.logger.warn('Child not available', enfTransId);
             }
         });
 
