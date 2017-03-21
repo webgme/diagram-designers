@@ -1739,6 +1739,18 @@ define([
 
         this._hideTexts();
 
+        function attachRightClickHider(label) {
+            self.skinParts[label].find('span').mousedown(function(event) {
+                switch (event.which) {
+                    case 3:
+                        self.skinParts[label].hide();
+                        break;
+                    default:
+                        break;
+                }
+            });
+        }
+
         function drawName() {
             var pathCenter = self._getMidPoint(),
                 nameStr;
@@ -1930,11 +1942,17 @@ define([
 
         if (this.selected) {
             this.skinParts.textContainer.addClass('is-selected');
+            ['name', 'srcText', 'dstText'].forEach(function (label) {
+                if (self.skinParts.hasOwnProperty(label)) {
+                    attachRightClickHider(label);
+                }
+            });
         }
     };
 
     Connection.prototype._hideTexts = function () {
         if (this.skinParts.textContainer) {
+            this.skinParts.textContainer.find('span').off();
             this.skinParts.textContainer.remove();
         }
     };
