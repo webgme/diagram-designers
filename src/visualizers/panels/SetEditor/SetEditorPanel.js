@@ -54,7 +54,7 @@ define(['js/PanelBase/PanelBaseWithHeader',
         };
 
         this.widget.onUIActivity = function () {
-            WebGMEGlobal.PanelManager.setActivePanel(self);
+            //WebGMEGlobal.PanelManager.setActivePanel(self);
             WebGMEGlobal.KeyboardManager.setListener(self.widget);
         };
 
@@ -106,7 +106,7 @@ define(['js/PanelBase/PanelBaseWithHeader',
         WebGMEGlobal.Toolbar.refresh();
     };
 
-    SetEditorPanel.prototype.getValidTypesInfo = function (/*nodeId*/) {
+    SetEditorPanel.prototype.getValidTypesInfo = function (/*nodeId, aspect*/) {
         return {};
     };
 
