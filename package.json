@@ -15,12 +15,13 @@
   },
   "version": "1.0.0",
   "peerDependencies": {
-    "webgme": "^2.0.0"
+    "webgme": "^2.31.0"
   },
   "devDependencies": {
     "mocha": "^2.2.5",
     "rimraf": "^2.4.0",
-    "chai": "^3.0.0"
+    "chai": "^3.0.0",
+    "webgme": "webgme/webgme#master"
   },
   "dependencies": {}
 }
