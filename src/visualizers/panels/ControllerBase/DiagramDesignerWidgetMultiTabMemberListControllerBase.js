@@ -237,8 +237,11 @@ define(['js/logger',
         }
     };
 
-    DiagramDesignerWidgetMultiTabMemberListControllerBase.prototype._stateActiveTabChanged = function (model, tabId) {
-        if (this._tabIDMemberListID && this._selectedMemberListID !== this._tabIDMemberListID[tabId]) {
+    DiagramDesignerWidgetMultiTabMemberListControllerBase.prototype._stateActiveTabChanged = function (model, tabId, opts) {
+        if (this._tabIDMemberListID &&
+            this._selectedMemberListID !== this._tabIDMemberListID[tabId] &&
+            opts.invoker !== this) {
+
             this._widget.selectTab(tabId + '');
         }
     };
@@ -274,8 +277,19 @@ define(['js/logger',
     };
 
     DiagramDesignerWidgetMultiTabMemberListControllerBase.prototype.onActivate = function () {
+        var tabId;
+
         this._attachClientEventListeners();
         this._displayToolbarItems();
+
+        if (this._tabIDMemberListID && this._selectedMemberListID) {
+            for (tabId in this._tabIDMemberListID) {
+                if (this._tabIDMemberListID[tabId] === this._selectedMemberListID) {
+                    WebGMEGlobal.State.registerActiveTab(tabId, {invoker: this});
+                    break;
+                }
+            }
+        }
 
         //setting the active object to the container
         if (typeof this._memberListContainerID === 'string') {
@@ -517,6 +531,12 @@ define(['js/logger',
         return undefined;
     };
 
+    DiagramDesignerWidgetMultiTabMemberListControllerBase.prototype.getMemberListSetsRegistry = function (/*nodeId*/) {
+        this.logger.warn('DiagramDesignerWidgetMultiTabMemberListControllerBase.getMemberListSetsRegistry is not ' +
+            'overridden, returning default value...');
+        return undefined;
+    };
+
     DiagramDesignerWidgetMultiTabMemberListControllerBase.prototype._onSelectedTabChanged = function (tabID) {
         if (this._tabIDMemberListID[tabID] && this._selectedMemberListID !== this._tabIDMemberListID[tabID]) {
             this._selectedMemberListID = this._tabIDMemberListID[tabID];
@@ -524,8 +544,10 @@ define(['js/logger',
             this.logger.debug('_selectedMemberListID changed to : ' + this._selectedMemberListID);
 
             this._initializeSelectedMemberList();
-            WebGMEGlobal.State.registerActiveTab(tabID);
         }
+
+        // Always register the tab to the state (needed if state triggers a tab that does not exist for this object)
+        WebGMEGlobal.State.registerActiveTab(tabID, {invoker: this});
     };
 
     DiagramDesignerWidgetMultiTabMemberListControllerBase.prototype._getDragParams = function (selectedElements,
@@ -571,8 +593,8 @@ define(['js/logger',
             i,
             accept = false;
 
-        //check to see if there is a currently selected memberlist to add the dragged elements to
-        if (this._selectedMemberListID) {
+        // Ensure that there is a selected memberlist (with members initialized) to add the dragged elements to.
+        if (this._selectedMemberListID && this._memberListMembers[this._selectedMemberListID]) {
             //accept is self reposition OR
             //dragging from somewhere else and the items are not on the sheet yet
             if (params &&
@@ -593,10 +615,11 @@ define(['js/logger',
                         accept = true;
                         for (i = 0; i < gmeIDList.length; i += 1) {
                             if (gmeIDList[i] === this._memberListContainerID) {
-                                accept = false;
-                                break;
+                                // TODO: Is this really OK??
+                                //accept = false;
+                                //break;
                             } else if (this._memberListMembers[this._selectedMemberListID]
-                                    .indexOf(gmeIDList[i]) !== -1) {
+                                .indexOf(gmeIDList[i]) !== -1) {
 
                                 accept = false;
                                 break;
@@ -1594,19 +1617,17 @@ define(['js/logger',
             memberListSetsRegistryKey = this.getMemberListSetsRegistryKey(),
             memberListSetsRegistry,
             i,
-            base,
             len,
             setID;
 
-        if (memberListContainerID &&
-            memberListSetsRegistryKey &&
-            memberListSetsRegistryKey !== '') {
-            memberListContainer = this._client.getNode(memberListContainerID);
-            memberListSetsRegistry = memberListContainer.getOwnEditableRegistry(memberListSetsRegistryKey);
-            base = this._client.getNode(memberListContainer.getBaseId());
+        if (typeof memberListContainerID === 'string') {
+            memberListSetsRegistry = this.getMemberListSetsRegistry(memberListContainerID);
+
             if (memberListSetsRegistry === undefined &&
-                (base === null || base.getRegistry(memberListSetsRegistryKey) === undefined)) {
-                memberListSetsRegistry = [];
+                memberListSetsRegistryKey &&
+                memberListSetsRegistryKey !== '') {
+                memberListContainer = this._client.getNode(memberListContainerID);
+                memberListSetsRegistry = memberListContainer.getOwnRegistry(memberListSetsRegistryKey);
             }
 
             if (this._tabIDMemberListID[tabID] && memberListSetsRegistry) {
@@ -1635,50 +1656,49 @@ define(['js/logger',
             memberListSetsRegistry,
             i,
             j,
-            base,
             oldIDList = this._tabIDMemberListID,
             urlTab = WebGMEGlobal.State.getActiveTab(),
             setID;
 
-        if (typeof memberListContainerID === 'string' &&
-            memberListSetsRegistryKey &&
-            memberListSetsRegistryKey !== '') {
-            memberListContainer = this._client.getNode(memberListContainerID);
-            memberListSetsRegistry = memberListContainer.getOwnEditableRegistry(memberListSetsRegistryKey);
-            base = this._client.getNode(memberListContainer.getBaseId());
+        if (typeof memberListContainerID === 'string') {
+            memberListSetsRegistry = this.getMemberListSetsRegistry(memberListContainerID);
+
             if (memberListSetsRegistry === undefined &&
-                (base === null || base.getRegistry(memberListSetsRegistryKey) === undefined)) {
-                memberListSetsRegistry = [];
+                memberListSetsRegistryKey &&
+                memberListSetsRegistryKey !== '') {
+                memberListContainer = this._client.getNode(memberListContainerID);
+                memberListSetsRegistry = memberListContainer.getOwnRegistry(memberListSetsRegistryKey);
             }
 
-            if (memberListSetsRegistry) {
-                this._tabIDMemberListID = {};
-                for (i = 0; i < newTabIDOrder.length; i += 1) {
-                    //i is the new order number
-                    //newTabIDOrder[i] is the tab identifier
-                    if (urlTab === newTabIDOrder[i]) {
-                        WebGMEGlobal.State.registerActiveTab(i);
-                    }
-                    setID = oldIDList[newTabIDOrder[i]];
-                    this._tabIDMemberListID[i] = setID;
-                    for (j = 0; j < memberListSetsRegistry.length; j += 1) {
-                        if (memberListSetsRegistry[j].SetID === setID) {
-                            memberListSetsRegistry[j].order = i;
-                            break;
-                        }
+        }
+
+        if (memberListSetsRegistry) {
+            this._tabIDMemberListID = {};
+            for (i = 0; i < newTabIDOrder.length; i += 1) {
+                //i is the new order number
+                //newTabIDOrder[i] is the tab identifier
+                if (urlTab.toString() === newTabIDOrder[i]) {
+                    WebGMEGlobal.State.registerActiveTab(i, {invoker: this});
+                }
+                setID = oldIDList[newTabIDOrder[i]];
+                this._tabIDMemberListID[i] = setID;
+                for (j = 0; j < memberListSetsRegistry.length; j += 1) {
+                    if (memberListSetsRegistry[j].SetID === setID) {
+                        memberListSetsRegistry[j].order = i;
+                        break;
                     }
                 }
-
-                memberListSetsRegistry.sort(function (a, b) {
-                    if (a.order < b.order) {
-                        return -1;
-                    } else {
-                        return 1;
-                    }
-                });
-
-                this._client.setRegistry(memberListContainerID, memberListSetsRegistryKey, memberListSetsRegistry);
             }
+
+            memberListSetsRegistry.sort(function (a, b) {
+                if (a.order < b.order) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            });
+
+            this._client.setRegistry(memberListContainerID, memberListSetsRegistryKey, memberListSetsRegistry);
         }
     };
 
@@ -1688,7 +1708,6 @@ define(['js/logger',
             memberListSetsRegistryKey = this.getMemberListSetsRegistryKey(),
             memberListSetsRegistry,
             i,
-            base,
             setID;
 
         if (typeof memberListContainerID === 'string') {
@@ -1696,40 +1715,37 @@ define(['js/logger',
 
             this._client.startTransaction();
 
-            if (memberListSetsRegistryKey) {
+            memberListSetsRegistry = this.getMemberListSetsRegistry(memberListContainerID);
+
+            if (memberListSetsRegistry === undefined && typeof memberListSetsRegistryKey === 'string') {
                 memberListContainer = this._client.getNode(memberListContainerID);
-                memberListSetsRegistry = memberListContainer.getOwnEditableRegistry(memberListSetsRegistryKey);
-                base = this._client.getNode(memberListContainer.getBaseId());
-                if (memberListSetsRegistry === undefined &&
-                    (base === null || base.getRegistry(memberListSetsRegistryKey) === undefined)) {
-                    memberListSetsRegistry = [];
+                memberListSetsRegistry = memberListContainer.getOwnRegistry(memberListSetsRegistryKey) || [];
+            }
+
+            if(memberListSetsRegistry !== undefined && memberListSetsRegistryKey !== undefined){
+                i = memberListSetsRegistry.length;
+                while (i--) {
+                    if (memberListSetsRegistry[i].SetID === setID) {
+                        memberListSetsRegistry.splice(i, 1);
+                        break;
+                    }
                 }
 
-                if (memberListSetsRegistry) {
-                    i = memberListSetsRegistry.length;
-                    while (i--) {
-                        if (memberListSetsRegistry[i].SetID === setID) {
-                            memberListSetsRegistry.splice(i, 1);
-                            break;
-                        }
+                //order remaining and reset order number
+                memberListSetsRegistry.sort(function (a, b) {
+                    if (a.order < b.order) {
+                        return -1;
+                    } else {
+                        return 1;
                     }
+                });
 
-                    //order remaining and reset order number
-                    memberListSetsRegistry.sort(function (a, b) {
-                        if (a.order < b.order) {
-                            return -1;
-                        } else {
-                            return 1;
-                        }
-                    });
-
-                    i = memberListSetsRegistry.length;
-                    while (i--) {
-                        memberListSetsRegistry[i].order = i;
-                    }
-
-                    this._client.setRegistry(memberListContainerID, memberListSetsRegistryKey, memberListSetsRegistry);
+                i = memberListSetsRegistry.length;
+                while (i--) {
+                    memberListSetsRegistry[i].order = i;
                 }
+
+                this._client.setRegistry(memberListContainerID, memberListSetsRegistryKey, memberListSetsRegistry);
             }
 
             //finally delete the sheet's SET
@@ -1745,67 +1761,62 @@ define(['js/logger',
             memberListSetsRegistryKey = this.getMemberListSetsRegistryKey(),
             memberListSetsRegistry,
             i,
-            base,
             newSetID,
             newSetNamePrefixDesc,
             newSetDesc;
 
-        if (this._canAddTab() &&
-            memberListSetsRegistryKey &&
-            memberListSetsRegistryKey !== '') {
-            memberListContainer = this._client.getNode(memberListContainerID);
-            memberListSetsRegistry = memberListContainer.getOwnEditableRegistry(memberListSetsRegistryKey);
-            base = this._client.getNode(memberListContainer.getBaseId());
+        if (this._canAddTab()) {
+            memberListSetsRegistry = this.getMemberListSetsRegistry(memberListContainerID);
             if (memberListSetsRegistry === undefined &&
-                (base === null || base.getRegistry(memberListSetsRegistryKey) === undefined)) {
-                memberListSetsRegistry = [];
+                memberListSetsRegistryKey &&
+                memberListSetsRegistryKey !== '') {
+                memberListContainer = this._client.getNode(memberListContainerID);
+                memberListSetsRegistry = memberListContainer.getOwnRegistry(memberListSetsRegistryKey) || [];
             }
 
-            if (memberListSetsRegistry) {
-                //reset set's order
-                memberListSetsRegistry.sort(function (a, b) {
-                    if (a.order < b.order) {
-                        return -1;
-                    } else {
-                        return 1;
-                    }
-                });
-
-                i = memberListSetsRegistry.length;
-                while (i--) {
-                    memberListSetsRegistry[i].order = i;
+            memberListSetsRegistry.sort(function (a, b) {
+                if (a.order < b.order) {
+                    return -1;
+                } else {
+                    return 1;
                 }
+            });
 
-                //create new Set's descriptor
-                //create new aspect set in  meta container node
-                newSetNamePrefixDesc = this.getNewSetNamePrefixDesc();
-
-                newSetID = newSetNamePrefixDesc.SetID + generateGuid();
-
-                newSetDesc = {
-                    SetID: newSetID,
-                    order: memberListSetsRegistry.length,
-                    title: newSetNamePrefixDesc.Title + memberListSetsRegistry.length
-                };
-
-                memberListSetsRegistry.push(newSetDesc);
-
-                //start transaction
-                this._client.startTransaction();
-
-                this._client.createSet(memberListContainerID, newSetID);
-
-                this._client.setRegistry(memberListContainerID, memberListSetsRegistryKey, memberListSetsRegistry);
-
-                //force switching to the new sheet if this is not the first sheet
-                //if this is the first, it will be activated by default
-                if (memberListSetsRegistry.length !== 1) {
-                    this._selectedMemberListID = newSetID;
-                }
-
-                //finish transaction
-                this._client.completeTransaction();
+            i = memberListSetsRegistry.length;
+            while (i--) {
+                memberListSetsRegistry[i].order = i;
             }
+
+            //create new Set's descriptor
+            //create new aspect set in  meta container node
+            newSetNamePrefixDesc = this.getNewSetNamePrefixDesc();
+
+            newSetID = newSetNamePrefixDesc.SetID + generateGuid();
+
+            newSetDesc = {
+                SetID: newSetID,
+                order: memberListSetsRegistry.length,
+                title: newSetNamePrefixDesc.Title + memberListSetsRegistry.length
+            };
+
+            memberListSetsRegistry.push(newSetDesc);
+
+            //start transaction
+            this._client.startTransaction();
+
+            this._client.createSet(memberListContainerID, newSetID);
+
+            this._client.setRegistry(memberListContainerID, memberListSetsRegistryKey, memberListSetsRegistry);
+
+            //force switching to the new sheet if this is not the first sheet
+            //if this is the first, it will be activated by default
+            if (memberListSetsRegistry.length !== 1) {
+                this._selectedMemberListID = newSetID;
+            }
+
+            WebGMEGlobal.State.registerActiveTab(memberListSetsRegistry.length - 1, {invoker: this});
+            //finish transaction
+            this._client.completeTransaction();
         }
     };
 
@@ -1985,25 +1996,50 @@ define(['js/logger',
     DiagramDesignerWidgetMultiTabMemberListControllerBase.prototype._onSelectionAlignMenu = function (selectedIds,
                                                                                                       mousePos) {
         var menuPos = this._widget.posToPageXY(mousePos.mX, mousePos.mY),
-            self = this;
+            self = this,
+            itemsIds = selectedIds.filter(function (itemId) {
+                return self._widget.itemIds.indexOf(itemId) > -1;
+            });
 
-        this._alignMenu.show(selectedIds, menuPos, function (key) {
-            self._onAlignSelection(selectedIds, key);
+        this._alignMenu.show(itemsIds, menuPos, function (key) {
+            self._onAlignSelection(itemsIds, key);
         });
     };
 
     DiagramDesignerWidgetMultiTabMemberListControllerBase.prototype._onAlignSelection = function (selectedIds, type) {
-        var params = {
-            client: this._client,
-            modelId: this._memberListContainerID,
-            idMap: this._ComponentID2GMEID,
-            setName: this._selectedMemberListID,
-            coordinates: this._memberListMemberCoordinates[this._selectedMemberListID]
-        };
+        var self = this,
+            selectedModels,
+            allModels,
+            result;
 
-        //TODO: Currently connections are always accounted for, regardless if they are displayed as boxes or not.
-        if (params.coordinates) {
-            this._alignMenu.alignSetSelection(params, selectedIds, type);
+        function getItemData(itemId) {
+            var item = self._widget.items[itemId];
+
+            return {
+                id: itemId,
+                x: item.positionX,
+                y: item.positionY,
+                width: item._width,
+                height: item._height
+            };
+        }
+
+        function isItemId(itemId) {
+            return self._widget.itemIds.indexOf(itemId) > -1;
+        }
+
+        selectedModels = selectedIds.filter(isItemId).map(getItemData);
+
+        if (selectedModels.length === 0) {
+            // No models were selected...
+            return;
+        }
+
+        allModels = self._widget.itemIds.map(getItemData);
+
+        result = this._alignMenu.getNewPositions(allModels, selectedModels, type);
+        if (Object.keys(result).length > 0) {
+            self._onDesignerItemsMove(result);
         }
     };
 
