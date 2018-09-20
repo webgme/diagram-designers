@@ -1,12 +1,12 @@
 /*globals require,importScripts*/
 // This is the code for using the autorouter as a web worker.
 
-importScripts('../../../lib/require/require.min.js');
 
 var worker = this,
     window = {},  //jshint ignore: line
     WebGMEGlobal = {gmeConfig: {}},
     respondToAll = false,
+    basePath = '/',
     msgQueue = [];
 
 /**
@@ -14,23 +14,27 @@ var worker = this,
  *
  * @return {undefined}
  */
-var startWorker = function() {
+var startWorker = function () {
     'use strict';
 
+    if (WebGMEGlobal.gmeConfig.client.mountedPath) {
+        basePath = WebGMEGlobal.gmeConfig.client.mountedPath + '/';
+    }
+
+    importScripts(basePath + 'common/lib/requirejs/require.js');
+
     // Queue any messages received while loading the dependencies
-    worker.onmessage = function(msg) {
+    worker.onmessage = function (msg) {
         msgQueue.push(msg);
     };
 
     require({
-        baseUrl: '.',
+        baseUrl: basePath,
         paths: {
-            common: '../../../../common',
-            assert: '../../../../common/util/assert',
-            js: '../..',
-            underscore: '../../../bower_components/underscore/underscore-min',
-            debug: '../../../bower_components/visionmedia-debug/dist/debug',
-            AutoRouterActionApplier: '../../../lib/autorouter/action-applier.min' // create a map file for debugging
+            client: 'client',
+            underscore: 'bower_components/underscore/underscore-min',
+            debug: 'common/lib/debug/debug',
+            AutoRouterActionApplier: 'lib/autorouter/action-applier.min' // create a map file for debugging
         },
         shim: {
             debug: {
@@ -40,18 +44,19 @@ var startWorker = function() {
     },
     [
         'AutoRouterActionApplier',
-        'js/logger',
+        'client/logger',
         'underscore'
     ],
-    function(
+    function (
         ActionApplier,
         Logger,
         _
     ) {
 
-        var AutoRouterWorker = function() {
+        var AutoRouterWorker = function () {
             // Add recording actions?
-            this.logger = Logger.create('gme:Widgets:DiagramDesigner:AutoRouter:Worker', WebGMEGlobal.gmeConfig.client.log);
+            this.logger = Logger.create('gme:Widgets:DiagramDesigner:AutoRouter:Worker',
+                WebGMEGlobal.gmeConfig.client.log);
             this._recordActions = true;
             this.init();
 
@@ -63,18 +68,19 @@ var startWorker = function() {
             };
         };
 
-        AutoRouterWorker.prototype.handleMessage = function(msg) {
+        AutoRouterWorker.prototype.handleMessage = function (msg) {
             this.logger.debug('Received:', msg.data);
 
             this._handleMessage(msg.data);
         };
 
-        AutoRouterWorker.prototype._handleMessage = function(msg) {
+        AutoRouterWorker.prototype._handleMessage = function (msg) {
             var response,
                 action = msg[0],
+                lightResult,
                 result;
 
-            response = [action, msg[1].slice()];  // Copy the input args
+            response = [action, JSON.parse(JSON.stringify(msg[1]))];  // Copy the input args
 
             // If routing async, decorate the request
             if (action === 'routeAsync') {
@@ -84,13 +90,28 @@ var startWorker = function() {
 
             try {
                 result = this._invokeAutoRouterMethodUnsafe.apply(this, msg);
-            } catch(e) {
+            } catch (e) {
                 // Send error message
                 worker.postMessage(['BugReplayList', this._getActionSequence()]);
             }
 
-            response.push(result);
+
             if (respondToAll || this.respondTo[action]) {
+                if (result) {
+                    if (action === 'addBox') {
+                        lightResult = {id: result.box.id};
+                        lightResult.ports = Object.keys(result.ports).map(function (key) {
+                            return {id: key};
+                        });
+                    }
+                }
+
+                if (lightResult) {
+                    response.push(lightResult);
+                } else {
+                    response.push(result);
+                }
+
                 this.logger.debug('Response:', response);
                 worker.postMessage(response);
             }
@@ -101,7 +122,7 @@ var startWorker = function() {
          *
          * @return {undefined}
          */
-        AutoRouterWorker.prototype._updatePaths = function(paths) {
+        AutoRouterWorker.prototype._updatePaths = function (paths) {
             this.logger.debug('Updating paths');
             var id,
                 points,
@@ -135,7 +156,7 @@ var startWorker = function() {
 };
 
 // Set the WebGMEGlobal.gmeConfig.client config value for use in the loggers
-worker.onmessage = function(msg) {
+worker.onmessage = function (msg) {
     'use strict';
 
     WebGMEGlobal.gmeConfig.client = msg.data[0];

@@ -32,13 +32,8 @@ define([
             this._onItemCreateQueue = {};
             this.workerQueue = [];
 
-            // TODO: If merging into one js file, this may break
-            var currentDir = module.id.split('/'),
-                workerFile;
-
-            currentDir.pop();
-            currentDir = currentDir.join('/');
-            workerFile = currentDir + '/AutoRouter.Worker.js';
+            // Note that this is the AutoRouter.Worker from webgme.
+            var workerFile = 'js/Widgets/DiagramDesigner/AutoRouter.Worker.js';
 
             this.worker = new Worker(workerFile);
             this.worker.postMessage([WebGMEGlobal.gmeConfig.client]);
@@ -480,6 +475,11 @@ define([
     };
 
     ConnectionRouteManager3.prototype._resizeItem = function (objId) {
+        if (!this.diagramDesigner.items[objId]) {
+            //FIXME why is there message for nonexisting objects???
+            return;
+        }
+
         var canvas = this.diagramDesigner,
             isEnd = true,
             connectionMetaInfo,
@@ -549,12 +549,13 @@ define([
         } else if (this._onItemCreateQueue[id] instanceof Array) {  // Store the operation
             this._onItemCreateQueue[id].push(fn);
         } else {
-           // Avoids exception to be thrown here..
+            // Avoids exception to be thrown here..
         }
     };
 
     ConnectionRouteManager3.prototype._updateBoxConnectionAreas = function (objId) {
-        var areas = this.diagramDesigner.items[objId].getConnectionAreas() || [],
+        var areas = this.diagramDesigner.items[objId] ?
+            this.diagramDesigner.items[objId].getConnectionAreas() || [] : [],
             newIds = {},
             connInfo = [],
             boxObject = this._autorouterBoxes[objId],
@@ -585,7 +586,9 @@ define([
         for (j = boxObject.ports.length; j--;) {
             id = boxObject.ports[j].id;
             if (!newIds[id]) {
-                this._invokeAutoRouterMethod('removePort', [boxObject.ports[j]]);  // Not sure FIXME
+                // TODO: There is no API call in the AutoRouter/ActionApplier
+                // TODO: for removing port based on ids (this never worked)
+                //this._invokeAutoRouterMethod('removePort', [boxObject.ports[j]]);  // Not sure FIXME
             }
         }
     };
